@@ -1,0 +1,30 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isVerifiedAdmin() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email == 'marketing.digitalmadhesh@gmail.com';
+    }
+
+    function isValidImageUpload() {
+      return request.resource != null
+        && request.resource.size <= 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|jpg|png|webp|avif|svg\\+xml)');
+    }
+
+    // Public read for published website media; admin-only image uploads
+    match /media/{folder}/{fileName} {
+      allow read: if true;
+      allow write: if isVerifiedAdmin()
+        && folder in ['blogs', 'portfolio', 'services', 'site', 'team']
+        && isValidImageUpload();
+      allow delete: if isVerifiedAdmin();
+    }
+
+    // Default deny for everything else
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

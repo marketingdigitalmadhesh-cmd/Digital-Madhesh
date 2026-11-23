@@ -1,0 +1,346 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Core primitive helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isPrimaryAdminEmail() {
+      return isVerifiedUser() && request.auth.token.email == 'marketing.digitalmadhesh@gmail.com';
+    }
+
+    function isAdmin() {
+      return isPrimaryAdminEmail() || (isVerifiedUser() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidSlug(slug) {
+      return slug is string && slug.size() >= 2 && slug.size() <= 160 && slug.matches('^[a-z0-9\\-]+$');
+    }
+
+    function isNonEmptyString(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    }
+
+    function isOptionalString(data, key, maxLen) {
+      return !(key in data) || (data[key] is string && data[key].size() <= maxLen);
+    }
+
+    // Validation Blueprint: Inquiry (Create)
+    function isValidInquiryCreate(data) {
+      return data.keys().hasAll([
+          'referenceCode', 'fullName', 'phoneNumber', 'interestedService',
+          'message', 'status', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'referenceCode', 'fullName', 'phoneNumber', 'email', 'businessName',
+          'interestedService', 'budget', 'message', 'status', 'notes',
+          'history', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.referenceCode)
+        && data.referenceCode.size() >= 4 && data.referenceCode.size() <= 40
+        && isNonEmptyString(data.fullName, 2, 120)
+        && isNonEmptyString(data.phoneNumber, 7, 30)
+        && isOptionalString(data, 'email', 160)
+        && isOptionalString(data, 'businessName', 160)
+        && isNonEmptyString(data.interestedService, 2, 160)
+        && isOptionalString(data, 'budget', 80)
+        && isNonEmptyString(data.message, 5, 3000)
+        && data.status == 'New'
+        && (!('notes' in data) || (data.notes is string && data.notes.size() == 0))
+        && (!('history' in data) || (data.history is list && data.history.size() <= 1))
+        && data.createdAt == request.time
+        && data.updatedAt == request.time;
+    }
+
+    // Validation Blueprint: Inquiry (Admin Update)
+    function isValidInquiryUpdate(data) {
+      return data.keys().hasAll([
+          'referenceCode', 'fullName', 'phoneNumber', 'interestedService',
+          'message', 'status', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'referenceCode', 'fullName', 'phoneNumber', 'email', 'businessName',
+          'interestedService', 'budget', 'message', 'status', 'notes',
+          'followUpDate', 'history', 'createdAt', 'updatedAt'
+        ])
+        && data.status in ['New', 'Contacted', 'Follow-up', 'Qualified', 'Converted', 'Closed']
+        && isOptionalString(data, 'notes', 5000)
+        && isOptionalString(data, 'followUpDate', 30)
+        && (!('history' in data) || (data.history is list && data.history.size() <= 50 && (data.history.size() == 0 || data.history[0] is string)))
+        && data.updatedAt == request.time;
+    }
+
+    // Validation Blueprint: BlogPost
+    function isValidBlog(data) {
+      return data.keys().hasAll([
+          'title', 'slug', 'content', 'category', 'author', 'status', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'title', 'slug', 'excerpt', 'content', 'category', 'tags', 'author',
+          'featuredImage', 'featuredImageAlt', 'status', 'publishedAt',
+          'seoTitle', 'seoDescription', 'createdAt', 'updatedAt'
+        ])
+        && isNonEmptyString(data.title, 3, 200)
+        && isValidSlug(data.slug)
+        && isOptionalString(data, 'excerpt', 500)
+        && isNonEmptyString(data.content, 10, 50000)
+        && isNonEmptyString(data.category, 2, 80)
+        && (!('tags' in data) || (data.tags is list && data.tags.size() <= 10 && (data.tags.size() == 0 || data.tags[0] is string)))
+        && isNonEmptyString(data.author, 2, 100)
+        && isOptionalString(data, 'featuredImage', 1000)
+        && isOptionalString(data, 'featuredImageAlt', 240)
+        && data.status in ['draft', 'published']
+        && isOptionalString(data, 'publishedAt', 40)
+        && isOptionalString(data, 'seoTitle', 160)
+        && isOptionalString(data, 'seoDescription', 320)
+        && data.createdAt is timestamp
+        && data.updatedAt == request.time;
+    }
+
+    // Validation Blueprint: PortfolioProject
+    function isValidProject(data) {
+      return data.keys().hasAll([
+          'title', 'slug', 'category', 'projectType', 'summary', 'status', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'title', 'slug', 'category', 'projectType', 'clientName', 'location',
+          'servicesProvided', 'coverImage', 'coverImageAlt', 'galleryImages',
+          'summary', 'overview', 'clientBackground', 'challenge', 'objective',
+          'strategy', 'execution', 'results', 'conclusion', 'printSpecs',
+          'metrics', 'featured', 'status', 'seoTitle', 'seoDescription',
+          'createdAt', 'updatedAt'
+        ])
+        && isNonEmptyString(data.title, 3, 200)
+        && isValidSlug(data.slug)
+        && isNonEmptyString(data.category, 2, 100)
+        && data.projectType in ['digital', 'printing', 'web', 'creative']
+        && isOptionalString(data, 'clientName', 160)
+        && isOptionalString(data, 'location', 160)
+        && (!('servicesProvided' in data) || (data.servicesProvided is list && data.servicesProvided.size() <= 15 && (data.servicesProvided.size() == 0 || data.servicesProvided[0] is string)))
+        && isOptionalString(data, 'coverImage', 1000)
+        && isOptionalString(data, 'coverImageAlt', 240)
+        && (!('galleryImages' in data) || (data.galleryImages is list && data.galleryImages.size() <= 12 && (data.galleryImages.size() == 0 || data.galleryImages[0] is string)))
+        && isNonEmptyString(data.summary, 5, 600)
+        && isOptionalString(data, 'overview', 5000)
+        && isOptionalString(data, 'clientBackground', 5000)
+        && isOptionalString(data, 'challenge', 5000)
+        && isOptionalString(data, 'objective', 5000)
+        && isOptionalString(data, 'strategy', 5000)
+        && isOptionalString(data, 'execution', 5000)
+        && isOptionalString(data, 'results', 5000)
+        && isOptionalString(data, 'conclusion', 5000)
+        && isOptionalString(data, 'printSpecs', 3000)
+        && (!('metrics' in data) || (data.metrics is list && data.metrics.size() <= 8 && (data.metrics.size() == 0 || data.metrics[0] is string)))
+        && (!('featured' in data) || data.featured is bool)
+        && data.status in ['draft', 'published']
+        && isOptionalString(data, 'seoTitle', 160)
+        && isOptionalString(data, 'seoDescription', 320)
+        && data.createdAt is timestamp
+        && data.updatedAt == request.time;
+    }
+
+    // Validation Blueprint: ServiceItem
+    function isValidService(data) {
+      return data.keys().hasAll([
+          'title', 'slug', 'category', 'shortDescription', 'active', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'title', 'slug', 'category', 'shortDescription', 'heroDescription',
+          'overview', 'benefits', 'deliverables', 'faqs', 'image', 'imageAlt',
+          'relatedSlugs', 'seoTitle', 'seoDescription', 'sortOrder', 'active', 'updatedAt'
+        ])
+        && isNonEmptyString(data.title, 2, 160)
+        && isValidSlug(data.slug)
+        && data.category in ['Digital Marketing', 'Creative Services', 'Website and Tracking', 'Printing and Advertising']
+        && isNonEmptyString(data.shortDescription, 5, 500)
+        && isOptionalString(data, 'heroDescription', 1000)
+        && isOptionalString(data, 'overview', 6000)
+        && (!('benefits' in data) || (data.benefits is list && data.benefits.size() <= 12 && (data.benefits.size() == 0 || data.benefits[0] is string)))
+        && (!('deliverables' in data) || (data.deliverables is list && data.deliverables.size() <= 15 && (data.deliverables.size() == 0 || data.deliverables[0] is string)))
+        && (!('faqs' in data) || (data.faqs is list && data.faqs.size() <= 10))
+        && isOptionalString(data, 'image', 1000)
+        && isOptionalString(data, 'imageAlt', 240)
+        && (!('relatedSlugs' in data) || (data.relatedSlugs is list && data.relatedSlugs.size() <= 6 && (data.relatedSlugs.size() == 0 || data.relatedSlugs[0] is string)))
+        && isOptionalString(data, 'seoTitle', 160)
+        && isOptionalString(data, 'seoDescription', 320)
+        && (!('sortOrder' in data) || data.sortOrder is number)
+        && data.active is bool
+        && data.updatedAt == request.time;
+    }
+
+    // Validation Blueprint: SiteSettings
+    function isValidSiteSettings(data) {
+      return data.keys().hasAll([
+          'heroHeadline', 'phone', 'whatsappNumber', 'address', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'heroHeadline', 'heroDescription', 'heroPrimaryCta', 'heroSecondaryCta',
+          'heroImage', 'aboutImage', 'printingImage', 'aboutIntro', 'aboutMission',
+          'aboutVision', 'aboutApproach', 'aboutValues', 'aboutDifferentiators',
+          'teamMembers', 'testimonials', 'faqs', 'serviceAreas', 'phone',
+          'whatsappNumber', 'email', 'address', 'businessHours', 'googleMapsUrl',
+          'googleMapsEmbedUrl', 'footerDescription', 'socialLinks',
+          'seoSiteTitle', 'seoMetaDescription', 'seoOgImage', 'updatedAt'
+        ])
+        && isNonEmptyString(data.heroHeadline, 5, 240)
+        && isOptionalString(data, 'heroDescription', 800)
+        && isOptionalString(data, 'heroPrimaryCta', 80)
+        && isOptionalString(data, 'heroSecondaryCta', 80)
+        && isOptionalString(data, 'heroImage', 1000)
+        && isOptionalString(data, 'aboutImage', 1000)
+        && isOptionalString(data, 'printingImage', 1000)
+        && isOptionalString(data, 'aboutIntro', 3000)
+        && isOptionalString(data, 'aboutMission', 1500)
+        && isOptionalString(data, 'aboutVision', 1500)
+        && isOptionalString(data, 'aboutApproach', 3000)
+        && (!('aboutValues' in data) || (data.aboutValues is list && data.aboutValues.size() <= 12))
+        && (!('aboutDifferentiators' in data) || (data.aboutDifferentiators is list && data.aboutDifferentiators.size() <= 12))
+        && (!('teamMembers' in data) || (data.teamMembers is list && data.teamMembers.size() <= 20))
+        && (!('testimonials' in data) || (data.testimonials is list && data.testimonials.size() <= 20))
+        && (!('faqs' in data) || (data.faqs is list && data.faqs.size() <= 20))
+        && (!('serviceAreas' in data) || (data.serviceAreas is list && data.serviceAreas.size() <= 12))
+        && isNonEmptyString(data.phone, 5, 40)
+        && isNonEmptyString(data.whatsappNumber, 5, 40)
+        && isOptionalString(data, 'email', 160)
+        && isNonEmptyString(data.address, 5, 300)
+        && isOptionalString(data, 'businessHours', 300)
+        && isOptionalString(data, 'googleMapsUrl', 1000)
+        && isOptionalString(data, 'googleMapsEmbedUrl', 1000)
+        && isOptionalString(data, 'footerDescription', 600)
+        && (!('socialLinks' in data) || data.socialLinks is map)
+        && isOptionalString(data, 'seoSiteTitle', 160)
+        && isOptionalString(data, 'seoMetaDescription', 320)
+        && isOptionalString(data, 'seoOgImage', 1000)
+        && data.updatedAt == request.time;
+    }
+
+    // Validation Blueprint: AdminUser
+    function isValidAdminUser(data) {
+      return data.keys().hasAll(['email', 'role', 'addedAt'])
+        && data.keys().hasOnly(['email', 'role', 'addedAt'])
+        && isNonEmptyString(data.email, 5, 160)
+        && data.role in ['admin', 'super_admin']
+        && data.addedAt == request.time;
+    }
+
+    // 1. Inquiries: Public write-only submission; strictly admin-only read/update/delete
+    match /inquiries/{inquiryId} {
+      allow get: if isValidId(inquiryId) && isAdmin();
+      allow list: if isPrimaryAdminEmail();
+      allow create: if isValidId(inquiryId) && isValidInquiryCreate(incoming());
+      allow update: if isValidId(inquiryId)
+        && isAdmin()
+        && isValidInquiryUpdate(incoming())
+        && incoming().createdAt == existing().createdAt
+        && incoming().referenceCode == existing().referenceCode
+        && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'notes', 'followUpDate', 'history', 'updatedAt']);
+      allow delete: if isValidId(inquiryId) && isAdmin();
+    }
+
+    // 2. Blogs: Published posts readable publicly; drafts and writes strictly admin-only
+    match /blogs/{blogId} {
+      allow get: if isValidId(blogId) && (existing().status == 'published' || isAdmin());
+      allow list: if existing().status == 'published' || isPrimaryAdminEmail();
+      allow create: if isValidId(blogId)
+        && isAdmin()
+        && isValidBlog(incoming())
+        && incoming().createdAt == request.time;
+      allow update: if isValidId(blogId)
+        && isAdmin()
+        && isValidBlog(incoming())
+        && incoming().createdAt == existing().createdAt
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'title', 'slug', 'excerpt', 'content', 'category', 'tags', 'author',
+          'featuredImage', 'featuredImageAlt', 'status', 'publishedAt',
+          'seoTitle', 'seoDescription', 'updatedAt'
+        ]);
+      allow delete: if isValidId(blogId) && isAdmin();
+    }
+
+    // 3. Portfolio Projects: Published projects readable publicly; drafts and writes strictly admin-only
+    match /projects/{projectId} {
+      allow get: if isValidId(projectId) && (existing().status == 'published' || isAdmin());
+      allow list: if existing().status == 'published' || isPrimaryAdminEmail();
+      allow create: if isValidId(projectId)
+        && isAdmin()
+        && isValidProject(incoming())
+        && incoming().createdAt == request.time;
+      allow update: if isValidId(projectId)
+        && isAdmin()
+        && isValidProject(incoming())
+        && incoming().createdAt == existing().createdAt
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'title', 'slug', 'category', 'projectType', 'clientName', 'location',
+          'servicesProvided', 'coverImage', 'coverImageAlt', 'galleryImages',
+          'summary', 'overview', 'clientBackground', 'challenge', 'objective',
+          'strategy', 'execution', 'results', 'conclusion', 'printSpecs',
+          'metrics', 'featured', 'status', 'seoTitle', 'seoDescription', 'updatedAt'
+        ]);
+      allow delete: if isValidId(projectId) && isAdmin();
+    }
+
+    // 4. Services: Active services readable publicly; writes strictly admin-only
+    match /services/{serviceId} {
+      allow get: if isValidId(serviceId) && (existing().active == true || isAdmin());
+      allow list: if existing().active == true || isPrimaryAdminEmail();
+      allow create: if isValidId(serviceId) && isAdmin() && isValidService(incoming());
+      allow update: if isValidId(serviceId)
+        && isAdmin()
+        && isValidService(incoming())
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'title', 'slug', 'category', 'shortDescription', 'heroDescription',
+          'overview', 'benefits', 'deliverables', 'faqs', 'image', 'imageAlt',
+          'relatedSlugs', 'seoTitle', 'seoDescription', 'sortOrder', 'active', 'updatedAt'
+        ]);
+      allow delete: if isValidId(serviceId) && isAdmin();
+    }
+
+    // 5. Site Settings: 'main' document readable publicly; writes strictly admin-only
+    match /site_settings/{docId} {
+      allow get: if isValidId(docId) && (docId == 'main' || isAdmin());
+      allow list: if isPrimaryAdminEmail();
+      allow create, update: if isValidId(docId)
+        && docId == 'main'
+        && isAdmin()
+        && isValidSiteSettings(incoming());
+      allow delete: if false;
+    }
+
+    // 6. Admins directory
+    match /admins/{adminId} {
+      allow get: if isValidId(adminId) && isVerifiedUser() && (request.auth.uid == adminId || isAdmin());
+      allow list: if isPrimaryAdminEmail();
+      allow create: if isValidId(adminId) && isPrimaryAdminEmail() && isValidAdminUser(incoming());
+      allow update: if isValidId(adminId) && isPrimaryAdminEmail() && isValidAdminUser(incoming());
+      allow delete: if isValidId(adminId) && isPrimaryAdminEmail() && request.auth.uid != adminId;
+    }
+
+    // 7. Startup connectivity check document
+    match /test/connection {
+      allow get: if true;
+    }
+  }
+}

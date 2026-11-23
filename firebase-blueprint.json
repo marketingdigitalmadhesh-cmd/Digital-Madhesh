@@ -1,0 +1,438 @@
+{
+  "entities": {
+    "Inquiry": {
+      "title": "Inquiry",
+      "description": "Private customer lead or consultation inquiry submitted via the Contact form.",
+      "type": "object",
+      "properties": {
+        "referenceCode": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 40,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Unique human-readable inquiry reference ID."
+        },
+        "fullName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120,
+          "description": "Visitor full name."
+        },
+        "phoneNumber": {
+          "type": "string",
+          "minLength": 7,
+          "maxLength": 30,
+          "description": "Visitor phone or WhatsApp number."
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 160,
+          "description": "Optional email address."
+        },
+        "businessName": {
+          "type": "string",
+          "maxLength": 160,
+          "description": "Optional business or organization name."
+        },
+        "interestedService": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 160,
+          "description": "Selected service or service category."
+        },
+        "budget": {
+          "type": "string",
+          "maxLength": 80,
+          "description": "Optional estimated budget range."
+        },
+        "message": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 3000,
+          "description": "Inquiry message and project requirements."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["New", "Contacted", "Follow-up", "Qualified", "Converted", "Closed"],
+          "description": "Lead management pipeline status."
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 5000,
+          "description": "Admin-only internal follow-up notes."
+        },
+        "followUpDate": {
+          "type": "string",
+          "maxLength": 30,
+          "description": "Optional ISO date string for scheduled follow-up."
+        },
+        "history": {
+          "type": "array",
+          "description": "Audit log entries of status changes and notes."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of inquiry submission."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last update."
+        }
+      },
+      "required": ["referenceCode", "fullName", "phoneNumber", "interestedService", "message", "status", "createdAt", "updatedAt"]
+    },
+    "BlogPost": {
+      "title": "BlogPost",
+      "description": "Editorial article or marketing/printing guide published via the Blog CMS.",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 200
+        },
+        "slug": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 160,
+          "pattern": "^[a-z0-9\\-]+$"
+        },
+        "excerpt": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "content": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 50000
+        },
+        "category": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "tags": {
+          "type": "array"
+        },
+        "author": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "featuredImage": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "featuredImageAlt": {
+          "type": "string",
+          "maxLength": 240
+        },
+        "status": {
+          "type": "string",
+          "enum": ["draft", "published"]
+        },
+        "publishedAt": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "seoTitle": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "seoDescription": {
+          "type": "string",
+          "maxLength": 320
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["title", "slug", "content", "category", "author", "status", "createdAt", "updatedAt"]
+    },
+    "PortfolioProject": {
+      "title": "PortfolioProject",
+      "description": "Portfolio project and structured case study managed via the Portfolio CMS.",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 200
+        },
+        "slug": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 160,
+          "pattern": "^[a-z0-9\\-]+$"
+        },
+        "category": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "projectType": {
+          "type": "string",
+          "enum": ["digital", "printing", "web", "creative"]
+        },
+        "clientName": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "location": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "servicesProvided": {
+          "type": "array"
+        },
+        "coverImage": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "coverImageAlt": {
+          "type": "string",
+          "maxLength": 240
+        },
+        "galleryImages": {
+          "type": "array"
+        },
+        "summary": {
+          "type": "string",
+          "maxLength": 600
+        },
+        "overview": {
+          "type": "string",
+          "maxLength": 5000
+        },
+        "clientBackground": {
+          "type": "string",
+          "maxLength": 5000
+        },
+        "challenge": {
+          "type": "string",
+          "maxLength": 5000
+        },
+        "objective": {
+          "type": "string",
+          "maxLength": 5000
+        },
+        "strategy": {
+          "type": "string",
+          "maxLength": 5000
+        },
+        "execution": {
+          "type": "string",
+          "maxLength": 5000
+        },
+        "results": {
+          "type": "string",
+          "maxLength": 5000
+        },
+        "conclusion": {
+          "type": "string",
+          "maxLength": 5000
+        },
+        "printSpecs": {
+          "type": "string",
+          "maxLength": 3000
+        },
+        "metrics": {
+          "type": "array"
+        },
+        "featured": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["draft", "published"]
+        },
+        "seoTitle": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "seoDescription": {
+          "type": "string",
+          "maxLength": 320
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["title", "slug", "category", "projectType", "summary", "status", "createdAt", "updatedAt"]
+    },
+    "ServiceItem": {
+      "title": "ServiceItem",
+      "description": "Service offering managed through the admin dashboard.",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 160
+        },
+        "slug": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 160,
+          "pattern": "^[a-z0-9\\-]+$"
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "Digital Marketing",
+            "Creative Services",
+            "Website and Tracking",
+            "Printing and Advertising"
+          ]
+        },
+        "shortDescription": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "heroDescription": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "overview": {
+          "type": "string",
+          "maxLength": 6000
+        },
+        "benefits": {
+          "type": "array"
+        },
+        "deliverables": {
+          "type": "array"
+        },
+        "faqs": {
+          "type": "array"
+        },
+        "image": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "imageAlt": {
+          "type": "string",
+          "maxLength": 240
+        },
+        "relatedSlugs": {
+          "type": "array"
+        },
+        "seoTitle": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "seoDescription": {
+          "type": "string",
+          "maxLength": 320
+        },
+        "sortOrder": {
+          "type": "number"
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["title", "slug", "category", "shortDescription", "active", "updatedAt"]
+    },
+    "SiteSettings": {
+      "title": "SiteSettings",
+      "description": "Global website content, contact info, SEO settings, service areas, FAQs, team, and testimonials.",
+      "type": "object",
+      "properties": {
+        "heroHeadline": { "type": "string", "maxLength": 240 },
+        "heroDescription": { "type": "string", "maxLength": 800 },
+        "heroPrimaryCta": { "type": "string", "maxLength": 80 },
+        "heroSecondaryCta": { "type": "string", "maxLength": 80 },
+        "heroImage": { "type": "string", "maxLength": 1000 },
+        "aboutImage": { "type": "string", "maxLength": 1000 },
+        "printingImage": { "type": "string", "maxLength": 1000 },
+        "aboutIntro": { "type": "string", "maxLength": 3000 },
+        "aboutMission": { "type": "string", "maxLength": 1500 },
+        "aboutVision": { "type": "string", "maxLength": 1500 },
+        "aboutApproach": { "type": "string", "maxLength": 3000 },
+        "aboutValues": { "type": "array" },
+        "aboutDifferentiators": { "type": "array" },
+        "teamMembers": { "type": "array" },
+        "testimonials": { "type": "array" },
+        "faqs": { "type": "array" },
+        "serviceAreas": { "type": "array" },
+        "phone": { "type": "string", "maxLength": 40 },
+        "whatsappNumber": { "type": "string", "maxLength": 40 },
+        "email": { "type": "string", "maxLength": 160 },
+        "address": { "type": "string", "maxLength": 300 },
+        "businessHours": { "type": "string", "maxLength": 300 },
+        "googleMapsUrl": { "type": "string", "maxLength": 1000 },
+        "googleMapsEmbedUrl": { "type": "string", "maxLength": 1000 },
+        "footerDescription": { "type": "string", "maxLength": 600 },
+        "socialLinks": { "type": "object" },
+        "seoSiteTitle": { "type": "string", "maxLength": 160 },
+        "seoMetaDescription": { "type": "string", "maxLength": 320 },
+        "seoOgImage": { "type": "string", "maxLength": 1000 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["heroHeadline", "phone", "whatsappNumber", "address", "updatedAt"]
+    },
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Authorized administrator directory record.",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "role": {
+          "type": "string",
+          "enum": ["admin", "super_admin"]
+        },
+        "addedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["email", "role", "addedAt"]
+    }
+  },
+  "firestore": {
+    "/inquiries/{inquiryId}": {
+      "schema": { "$ref": "#/entities/Inquiry" },
+      "description": "Private visitor inquiries submitted from contact and service forms."
+    },
+    "/blogs/{blogId}": {
+      "schema": { "$ref": "#/entities/BlogPost" },
+      "description": "Blog articles and guides managed by the admin CMS."
+    },
+    "/projects/{projectId}": {
+      "schema": { "$ref": "#/entities/PortfolioProject" },
+      "description": "Portfolio projects and case studies managed by the admin CMS."
+    },
+    "/services/{serviceId}": {
+      "schema": { "$ref": "#/entities/ServiceItem" },
+      "description": "Agency digital marketing, creative, web, and printing services."
+    },
+    "/site_settings/{docId}": {
+      "schema": { "$ref": "#/entities/SiteSettings" },
+      "description": "Editable website copy, images, contact details, FAQs, service areas, and SEO metadata."
+    },
+    "/admins/{adminId}": {
+      "schema": { "$ref": "#/entities/AdminUser" },
+      "description": "Authorized administrator accounts."
+    }
+  }
+}
