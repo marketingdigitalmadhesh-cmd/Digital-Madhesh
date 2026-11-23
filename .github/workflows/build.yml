@@ -1,3 +1,4 @@
+
 name: Build Digital Madhesh
 
 on:
@@ -15,7 +16,8 @@ jobs:
         with:
           node-version: 20
 
-     - run: npm install --legacy-peer-deps
+      - run: npm install --legacy-peer-deps
+
       - run: npm run build
 
       - uses: actions/upload-artifact@v4
